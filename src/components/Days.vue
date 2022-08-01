@@ -1,15 +1,32 @@
 <template>
-    <div>
-        <h1>oh hai</h1>
-        <div
-            :style="gridStyles"
-            class="grid">
-            <span
-                v-for="(day, index) in visibleDays"
-                :class="dayClasses(index, day)">
-                {{ getDate(day) }}
-            </span>
-        </div>
+    <div id="container">
+        <button @click="addRowsToStart">moar</button>
+
+        <Group v-for="outer in eachYearOfInterval(interval)">
+            <template #label>
+                {{ getYear(outer) }}
+            </template>
+
+            <div>
+                <Group v-for="inner in monthsByYear(outer)">
+                    <template #label>
+                        {{ renderMonth(getMonth(inner)) }}
+                    </template>
+
+                    <div
+                        :style="gridStyles"
+                        class="grid grow">
+                        <span
+                            v-for="day in daysByMonth(inner)"
+                            :class="[`px-3`, `py-2`, { 'border-2 rounded-lg': isSameDay(day, anchorDate) }]">
+                            {{ isDate(day) ? getDate(day) : `` }}
+                        </span>
+                    </div>
+                </Group>
+            </div>
+        </Group>
+
+        <button @click="addRowsToEnd">moar</button>
     </div>
 </template>
 
@@ -19,13 +36,23 @@ import {
     add,
     differenceInCalendarDays,
     eachDayOfInterval,
+    eachMonthOfInterval,
+    eachYearOfInterval,
     getDate,
     getDay,
+    getMonth,
+    getYear,
+    isDate,
     isSameDay,
     lastDayOfMonth,
+    max,
+    min,
+    parse,
     setDate,
+    setMonth,
     sub,
 } from 'date-fns'
+import Group from './Group.vue'
 
 interface Generic<T = any> {
     [key: string]: T
@@ -33,17 +60,54 @@ interface Generic<T = any> {
 
 export default defineComponent({
     name: `Days`,
-    data() {
+    components: {
+        Group,
+    },
+    data(): Generic {
         return {
-            anchorDate: new Date(1980, 9, 20),
-            daysPerRow: 7,
+            anchorDate: null,
+            daysPerRow: null,
+            eachMonthOfInterval,
+            eachYearOfInterval,
+            endDate: null,
             getDate,
+            getMonth,
+            getYear,
+            isDate,
+            isSameDay,
+            startDate: null,
         }
+    },
+    // created () {
+    //     window.addEventListener('scroll', this.handleScroll);
+    // },
+    beforeMount () {
+        const params = new Proxy(
+            new URLSearchParams(window.location.search) as Generic,
+            {
+                get: (searchParams, prop: string) => searchParams.get(prop),
+            }
+        );
+
+        this.daysPerRow = params.daysPerRow ? parseInt(params.daysPerRow) : 7
+        this.anchorDate = params.anchorDate ? this.parseDate(params.anchorDate) : new Date()
+        this.endDate = params.endDate
+            ? this.parseDate(params?.endDate)
+            : add(this.anchorDate, { days: 9 * this.daysPerRow})
+        this.startDate = params.startDate
+            ? this.parseDate(params?.startDate)
+            : sub(this.anchorDate, { days: 3 * this.daysPerRow })
     },
     computed: {
         gridStyles(): Generic {
             return {
                 gridTemplateColumns: `repeat(${this.daysPerRow}, minmax(0, 1fr))`,
+            }
+        },
+        interval(): Interval {
+            return {
+                start: this.visibleStart,
+                end: this.visibleEnd,
             }
         },
         visibleDays(): Date[] {
@@ -53,28 +117,52 @@ export default defineComponent({
             })
         },
         visibleStart(): Date {
-            return sub(this.anchorDate, { days: getDay(this.anchorDate), weeks: 3 })
+            if (this.daysPerRow !== 7) {
+                // when we're not viewing rows as weeks, lets just make column 1 the day they chose
+                return this.startDate
+            }
+
+            const rowStart = sub(this.startDate, { days: getDay(this.startDate) })
+            const firstOfMonth = setDate(this.startDate, 1)
+
+            return max([rowStart, firstOfMonth])
         },
         visibleEnd(): Date {
-            return add(this.anchorDate, { days: 6 - getDay(this.anchorDate), weeks: 9 })
+            const offset = this.daysPerRow === 7
+                ? 6 - getDay(this.endDate)
+                : this.daysPerRow - 1 - differenceInCalendarDays(this.endDate, this.visibleStart) % this.daysPerRow
+
+            const rowEnd = add(this.endDate, { days: offset })
+
+            return min([rowEnd, lastDayOfMonth(this.endDate)])
         },
     },
     methods: {
-        dayClasses(index: number, day: Date): Generic {
-            const isFirstInRow = index % this.daysPerRow == 0
-            const isAnchorDate = isSameDay(this.anchorDate, day)
-            const isFirstOfMonth = getDate(day) === 1
-            const isInFirstRow = getDate(day) < getDate(this.lastDayInFirstRow(index, day))
-            const isInLastRow = getDate(this.firstDayInLastRow(index, day)) <= getDate(day)
+        addRowsToEnd(): void {
+            this.endDate = add(this.endDate, { days: 4 * this.daysPerRow })
 
-            return {
-                'border-4': isAnchorDate,
-                'border-t': !isAnchorDate && isInFirstRow,
-                'border-b': !isAnchorDate && isInLastRow,
-                'border-l': !isAnchorDate && isFirstOfMonth && !isFirstInRow,
-                'px-4': true,
-                'py-3': true,
-            }
+            this.$nextTick(() => {
+                window.scrollTo(0, document.body.scrollHeight)
+            })
+        },
+        addRowsToStart(): void {
+            this.startDate = sub(this.startDate, { days: 4 * this.daysPerRow })
+        },
+        daysByMonth(month: Date): Date[] {
+            const firstDayOfGroup = max([this.visibleStart, month])
+            const lastDayOfGroup = min([this.visibleEnd, lastDayOfMonth(month)])
+
+            const offset = Array(
+                differenceInCalendarDays(firstDayOfGroup, this.visibleStart) % this.daysPerRow
+            )
+
+            return [
+                ...offset,
+                ...eachDayOfInterval({
+                    start: firstDayOfGroup,
+                    end: lastDayOfGroup,
+                }),
+            ]
         },
         firstDayInLastRow(index: number, day: Date): Date {
             const lastDayOfThisMonth = lastDayOfMonth(day)
@@ -83,12 +171,47 @@ export default defineComponent({
 
             return sub(lastDayOfThisMonth, { days: offset })
         },
+        handleScroll(event: any): void {
+            console.log(event)
+        },
         lastDayInFirstRow(index: number, day: Date): Date {
             const firstDayOfThisMonth = setDate(day, 1)
             const offset = index % this.daysPerRow
 
             return add(firstDayOfThisMonth, { days: offset })
-        }
+        },
+        monthsByYear(year: Date): Date[] {
+            const firstMonthOfGroup = max([this.visibleStart, year])
+            const lastMonthOfGroup = min([this.visibleEnd, setMonth(year, 11)])
+
+            return eachMonthOfInterval({
+                start: firstMonthOfGroup,
+                end: lastMonthOfGroup,
+            })
+        },
+        parseDate(string: string): Date | null {
+            const parsed = parse(string, `yyyy-MM-dd`, new Date())
+
+            return isDate(parsed) ? parsed : null
+        },
+        renderMonth(month: number): string {
+            const monthNames = [
+                `jan`,
+                `feb`,
+                `mar`,
+                `apr`,
+                `may`,
+                `jun`,
+                `jul`,
+                `aug`,
+                `sept`,
+                `oct`,
+                `nov`,
+                `dec`,
+            ]
+
+            return monthNames[month]
+        },
     },
 })
 </script>
