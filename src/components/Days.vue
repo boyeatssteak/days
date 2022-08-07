@@ -18,7 +18,7 @@
                         class="grid grow">
                         <span
                             v-for="day in daysByMonth(inner)"
-                            :class="[`px-3`, `py-2`, { 'border-2 rounded-lg': isSameDay(day, anchorDate) }]">
+                            :class="getStylesForDay(day)">
                             {{ isDate(day) ? getDate(day) : `` }}
                         </span>
                     </div>
@@ -52,6 +52,7 @@ import {
     setMonth,
     sub,
 } from 'date-fns'
+import { includes } from 'lodash'
 import Group from './Group.vue'
 
 interface Generic<T = any> {
@@ -147,6 +148,20 @@ export default defineComponent({
         },
         addRowsToStart(): void {
             this.startDate = sub(this.startDate, { days: 4 * this.daysPerRow })
+        },
+        getStylesForDay(day: Date): string[] {
+            const classes = [`px-3`, `py-2`]
+
+            switch (true) {
+                case isSameDay(day, this.anchorDate):
+                    classes.push(`border-2`, `rounded-lg`, `font-bold`, `bg-zinc-900`)
+                    break
+                case includes([0, 6], getDay(day)):
+                    classes.push(`text-zinc-400`, `font-light`)
+                    break
+            }
+
+            return classes
         },
         daysByMonth(month: Date): Date[] {
             const firstDayOfGroup = max([this.visibleStart, month])
