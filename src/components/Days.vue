@@ -1,5 +1,5 @@
 <template>
-    <div id="container">
+    <div id="container" class="max-w-md mx-auto px-2">
         <button @click="addRowsToStart">moar</button>
 
         <Group v-for="outer in eachYearOfInterval(interval)">
@@ -7,7 +7,7 @@
                 {{ getYear(outer) }}
             </template>
 
-            <div>
+            <div class="grow">
                 <Group v-for="inner in monthsByYear(outer)">
                     <template #label>
                         {{ renderMonth(getMonth(inner)) }}
@@ -150,7 +150,7 @@ export default defineComponent({
             this.startDate = sub(this.startDate, { days: 4 * this.daysPerRow })
         },
         getStylesForDay(day: Date): string[] {
-            const classes = [`px-3`, `py-2`]
+            const classes = [`py-2`]
 
             switch (true) {
                 case isSameDay(day, this.anchorDate):
