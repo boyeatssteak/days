@@ -111,6 +111,14 @@ export default defineComponent({
                 end: this.visibleEnd,
             }
         },
+        rowIndexingDay(): Date {
+            if (this.daysPerRow !== 7) {
+                // when we're not viewing rows as weeks, lets just make column 1 the day they chose
+                return this.startDate
+            }
+
+            return sub(this.startDate, { days: getDay(this.startDate) })
+        },
         visibleDays(): Date[] {
             return eachDayOfInterval({
                 start: this.visibleStart,
@@ -118,15 +126,9 @@ export default defineComponent({
             })
         },
         visibleStart(): Date {
-            if (this.daysPerRow !== 7) {
-                // when we're not viewing rows as weeks, lets just make column 1 the day they chose
-                return this.startDate
-            }
-
-            const rowStart = sub(this.startDate, { days: getDay(this.startDate) })
             const firstOfMonth = setDate(this.startDate, 1)
 
-            return max([rowStart, firstOfMonth])
+            return max([this.rowIndexingDay, firstOfMonth])
         },
         visibleEnd(): Date {
             const offset = this.daysPerRow === 7
@@ -168,7 +170,7 @@ export default defineComponent({
             const lastDayOfGroup = min([this.visibleEnd, lastDayOfMonth(month)])
 
             const offset = Array(
-                differenceInCalendarDays(firstDayOfGroup, this.visibleStart) % this.daysPerRow
+                differenceInCalendarDays(firstDayOfGroup, this.rowIndexingDay) % this.daysPerRow
             )
 
             return [
