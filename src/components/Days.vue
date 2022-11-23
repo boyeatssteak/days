@@ -179,13 +179,6 @@ export default defineComponent({
                 }),
             ]
         },
-        firstDayInLastRow(index: number, day: Date): Date {
-            const lastDayOfThisMonth = lastDayOfMonth(day)
-            const diffDays = differenceInCalendarDays(lastDayOfThisMonth, this.visibleStart)
-            const offset = differenceInCalendarDays(lastDayOfThisMonth, this.visibleStart) % this.daysPerRow
-
-            return sub(lastDayOfThisMonth, { days: offset })
-        },
         handleScroll(event: any): void {
             console.log(event)
         },
