@@ -192,7 +192,7 @@ export default defineComponent({
         },
         monthsByYear(year: Date): Date[] {
             const firstMonthOfGroup = max([this.visibleStart, year])
-            const lastMonthOfGroup = min([this.visibleEnd, setMonth(year, 11)])
+            const lastMonthOfGroup = lastDayOfMonth(min([this.visibleEnd, setMonth(year, 11)]))
 
             return eachMonthOfInterval({
                 start: firstMonthOfGroup,
