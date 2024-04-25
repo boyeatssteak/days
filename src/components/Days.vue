@@ -90,14 +90,28 @@ export default defineComponent({
             }
         );
 
-        this.daysPerRow = params.daysPerRow ? parseInt(params.daysPerRow) : 7
-        this.anchorDate = params.anchorDate ? this.parseDate(params.anchorDate) : new Date()
-        this.endDate = params.endDate
-            ? this.parseDate(params?.endDate)
-            : add(this.anchorDate, { days: 9 * this.daysPerRow})
-        this.startDate = params.startDate
-            ? this.parseDate(params?.startDate)
-            : sub(this.anchorDate, { days: 3 * this.daysPerRow })
+        this.daysPerRow = params.days_per_row ? parseInt(params.days_per_row) : 7
+        const requestedAnchorDate = params.anchor_date
+            ? this.parseDate(params.anchor_date)
+            : null
+        const requestedEndDate = params.end_date
+            ? this.parseDate(params?.end_date)
+            : null
+        const requestedStartDate = params.start_date
+            ? this.parseDate(params?.start_date)
+            : null
+
+        this.anchorDate = requestedAnchorDate ?? new Date()
+        this.endDate = requestedEndDate
+            ?? add(
+                requestedAnchorDate ?? requestedStartDate ?? this.anchorDate,
+                { days: 9 * this.daysPerRow}
+            )
+        this.startDate = requestedStartDate
+            ?? sub(
+                requestedAnchorDate ?? requestedEndDate ?? this.anchorDate,
+                { days: 3 * this.daysPerRow }
+            )
     },
     computed: {
         gridStyles(): Generic {
