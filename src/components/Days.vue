@@ -1,7 +1,6 @@
 <template>
     <div id="container" class="max-w-md mx-auto px-2">
-        <button @click="addRowsToStart">moar</button>
-
+        <Spinner />
         <Group v-for="outer in eachYearOfInterval(interval)">
             <template #label>
                 {{ getYear(outer) }}
@@ -25,8 +24,7 @@
                 </Group>
             </div>
         </Group>
-
-        <button @click="addRowsToEnd">moar</button>
+        <Spinner />
     </div>
 </template>
 
@@ -52,8 +50,9 @@ import {
     setMonth,
     sub,
 } from 'date-fns'
-import { includes } from 'lodash'
+import { includes, debounce } from 'lodash'
 import Group from './Group.vue'
+import Spinner from './Spinner.vue'
 
 interface Generic<T = any> {
     [key: string]: T
@@ -63,6 +62,7 @@ export default defineComponent({
     name: `Days`,
     components: {
         Group,
+        Spinner,
     },
     data(): Generic {
         return {
@@ -79,9 +79,9 @@ export default defineComponent({
             startDate: null,
         }
     },
-    // created () {
-    //     window.addEventListener('scroll', this.handleScroll);
-    // },
+    created () {
+        window.addEventListener('scroll', debounce(this.handleScroll, 100));
+    },
     beforeMount () {
         const params = new Proxy(
             new URLSearchParams(window.location.search) as Generic,
@@ -112,6 +112,9 @@ export default defineComponent({
                 requestedAnchorDate ?? requestedEndDate ?? this.anchorDate,
                 { days: 3 * this.daysPerRow }
             )
+    },
+    mounted () {
+        this.handleScroll()
     },
     computed: {
         gridStyles(): Generic {
@@ -156,14 +159,10 @@ export default defineComponent({
     },
     methods: {
         addRowsToEnd(): void {
-            this.endDate = add(this.endDate, { days: 4 * this.daysPerRow })
-
-            this.$nextTick(() => {
-                window.scrollTo(0, document.body.scrollHeight)
-            })
+            this.endDate = add(this.endDate, { days: 8 * this.daysPerRow })
         },
         addRowsToStart(): void {
-            this.startDate = sub(this.startDate, { days: 4 * this.daysPerRow })
+            this.startDate = sub(this.startDate, { days: 8 * this.daysPerRow })
         },
         getStylesForDay(day: Date): string[] {
             const classes = [`py-2`]
@@ -195,8 +194,26 @@ export default defineComponent({
                 }),
             ]
         },
-        handleScroll(event: any): void {
-            console.log(event)
+        handleScroll(): void {
+            const initialScrollY = window.scrollY
+            const initialScrollHeight = document.body.scrollHeight
+            const minimumBleed = window.innerHeight / 2
+
+            // add top bleed
+            if (initialScrollY < minimumBleed) {
+                this.addRowsToStart()
+
+                this.$nextTick(() => {
+                    window.scrollTo(0, document.body.scrollHeight - initialScrollHeight + initialScrollY)
+                })
+
+                return
+            }
+
+            // add bottom bleed
+            if (document.body.scrollHeight - (initialScrollY + window.innerHeight) < minimumBleed) {
+                this.addRowsToEnd()
+            }
         },
         lastDayInFirstRow(index: number, day: Date): Date {
             const firstDayOfThisMonth = setDate(day, 1)
