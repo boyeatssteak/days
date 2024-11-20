@@ -159,10 +159,10 @@ export default defineComponent({
     },
     methods: {
         addRowsToEnd(): void {
-            this.endDate = add(this.endDate, { days: 8 * this.daysPerRow })
+            this.endDate = add(this.endDate, { days: 52 * this.daysPerRow })
         },
         addRowsToStart(): void {
-            this.startDate = sub(this.startDate, { days: 8 * this.daysPerRow })
+            this.startDate = sub(this.startDate, { days: 52 * this.daysPerRow })
         },
         getStylesForDay(day: Date): string[] {
             const classes = [`py-2`]
@@ -195,14 +195,18 @@ export default defineComponent({
             ]
         },
         handleScroll(): void {
+            // return
             const initialScrollY = window.scrollY
             const initialScrollHeight = document.body.scrollHeight
-            const minimumBleed = window.innerHeight / 2
+            const minimumBleed = window.innerHeight * 4
+
+            const viewPortMid = initialScrollY + window.innerHeight / 2
 
             // add top bleed
-            if (initialScrollY < minimumBleed) {
+            if (viewPortMid - minimumBleed < 0) {
                 this.addRowsToStart()
 
+                // set scroll position to hold the same day in view
                 this.$nextTick(() => {
                     window.scrollTo(0, document.body.scrollHeight - initialScrollHeight + initialScrollY)
                 })
@@ -211,8 +215,13 @@ export default defineComponent({
             }
 
             // add bottom bleed
-            if (document.body.scrollHeight - (initialScrollY + window.innerHeight) < minimumBleed) {
+            if (viewPortMid + minimumBleed > document.body.scrollHeight) {
                 this.addRowsToEnd()
+
+                // gently touch scroll position to trigger handleScroll again
+                this.$nextTick(() => {
+                    window.scrollTo(0, initialScrollY + 0.5)
+                })
             }
         },
         lastDayInFirstRow(index: number, day: Date): Date {
