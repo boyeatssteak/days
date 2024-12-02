@@ -80,7 +80,16 @@ export default defineComponent({
         }
     },
     created () {
-        window.addEventListener('scroll', debounce(this.handleScroll, 100));
+        window.addEventListener(
+            'scroll',
+            debounce(
+                this.handleScroll,
+                100,
+                {
+                    maxWait: 500
+                }
+            )
+        );
     },
     beforeMount () {
         const params = new Proxy(
