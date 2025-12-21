@@ -1,12 +1,12 @@
 <template>
-    <div id="container" class="max-w-md mx-auto px-2">
+    <div id="container" class="mx-auto px-2 w-min">
         <Spinner />
         <Group v-for="outer in eachYearOfInterval(interval)">
             <template #label>
                 {{ getYear(outer) }}
             </template>
 
-            <div class="grow">
+            <div>
                 <Group v-for="inner in monthsByYear(outer)">
                     <template #label>
                         {{ renderMonth(getMonth(inner)) }}
@@ -128,7 +128,7 @@ export default defineComponent({
     computed: {
         gridStyles(): Generic {
             return {
-                gridTemplateColumns: `repeat(${this.daysPerRow}, minmax(0, 1fr))`,
+                gridTemplateColumns: `repeat(${this.daysPerRow}, 5ch)`,
             }
         },
         interval(): Interval {
