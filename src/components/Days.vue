@@ -126,9 +126,35 @@ export default defineComponent({
         this.handleScroll()
     },
     computed: {
+        dayWidth(): number {
+            const maxDayWidth = 5
+            const minDayWidth = 2
+            const cutoverDayWidth = 3
+            const cutoverDayCount = 25
+
+            if (this.daysPerRow <= 7) {
+                return maxDayWidth
+            }
+            if (100 <= this.daysPerRow) {
+                return minDayWidth
+            }
+
+            // bigger range of change from 7 days to cutover
+            if (this.daysPerRow <= cutoverDayCount) {
+                const widthUnitsPerDayCount = (maxDayWidth - cutoverDayWidth) / (cutoverDayCount - 7)
+
+                return cutoverDayWidth + ((cutoverDayCount - this.daysPerRow) * widthUnitsPerDayCount)
+            }
+
+            const widthUnitsPerDayCount = (cutoverDayWidth - minDayWidth) / (100 - cutoverDayCount)
+
+            return cutoverDayWidth - ((this.daysPerRow - cutoverDayCount) * widthUnitsPerDayCount)
+        },
         gridStyles(): Generic {
+            const dayWidth = this.dayWidth.toFixed(2)
+
             return {
-                gridTemplateColumns: `repeat(${this.daysPerRow}, 5ch)`,
+                gridTemplateColumns: `repeat(${this.daysPerRow}, ${dayWidth}ch)`,
             }
         },
         interval(): Interval {
