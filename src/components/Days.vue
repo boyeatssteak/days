@@ -74,6 +74,7 @@ export default defineComponent({
             getDate,
             getMonth,
             getYear,
+            indexingDay: null,
             isDate,
             isSameDay,
             startDate: null,
@@ -100,6 +101,9 @@ export default defineComponent({
         );
 
         this.daysPerRow = params.days_per_row ? parseInt(params.days_per_row) : 7
+        this.indexingDay = params.indexing_day
+            ? this.parseDate(params.indexing_day)
+            : null
         const requestedAnchorDate = params.anchor_date
             ? this.parseDate(params.anchor_date)
             : null
@@ -164,6 +168,11 @@ export default defineComponent({
             }
         },
         rowIndexingDay(): Date {
+            if (this.indexingDay) {
+                // when a query has specified an indexing day, use it
+                return this.indexingDay
+            }
+
             if (this.daysPerRow !== 7) {
                 // when we're not viewing rows as weeks, lets just make column 1 the day they chose
                 return this.startDate
@@ -178,9 +187,11 @@ export default defineComponent({
             })
         },
         visibleStart(): Date {
-            const firstOfMonth = setDate(this.startDate, 1)
-
-            return max([this.rowIndexingDay, firstOfMonth])
+            // @TOOD: Typical use has this off canvas at all times, so it doesn't really matter, but
+            // the original intent was to just fill out the row of whatever `startDate` had been calculated
+            // e.g. if startDate gets calculated at Mon, Nov 3, we would set visible start to Nov 2 (Sunday),
+            //   not Nov 1 (Saturday, taking a whole extra row). See efc4fa93 for an earlier iteration of this.
+            return setDate(this.startDate, 1)
         },
         visibleEnd(): Date {
             const offset = this.daysPerRow === 7
@@ -214,11 +225,18 @@ export default defineComponent({
             return classes
         },
         daysByMonth(month: Date): Date[] {
+            // @TODO: This is over-engineered to handle display of partial months. With the current scroll handling
+            // aggressively overfilling the canvas, the offset concept can be discarded.
             const firstDayOfGroup = max([this.visibleStart, month])
             const lastDayOfGroup = min([this.visibleEnd, lastDayOfMonth(month)])
 
             const offset = Array(
-                differenceInCalendarDays(firstDayOfGroup, this.rowIndexingDay) % this.daysPerRow
+                (
+                    (
+                        differenceInCalendarDays(firstDayOfGroup, this.rowIndexingDay) % this.daysPerRow
+                        + this.daysPerRow
+                    ) % this.daysPerRow
+                )
             )
 
             return [
@@ -230,7 +248,6 @@ export default defineComponent({
             ]
         },
         handleScroll(): void {
-            // return
             const initialScrollY = window.scrollY
             const initialScrollHeight = document.body.scrollHeight
             const minimumBleed = window.innerHeight * 4
