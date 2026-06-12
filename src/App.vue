@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import Days from './components/Days.vue'
+import DaysGrid from './components/DaysGrid.vue'
 </script>
 
 <template>
-  <Days />
+  <DaysGrid />
 </template>
